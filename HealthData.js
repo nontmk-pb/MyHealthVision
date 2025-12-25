@@ -8,4 +8,3 @@ const HealthSchema = new mongoose.Schema({
     diseaseRisk: String // ผลวิเคราะห์ว่าเสี่ยงโรคอะไร
 });
 module.exports = mongoose.model('HealthData', HealthSchema);
-//โอเค
