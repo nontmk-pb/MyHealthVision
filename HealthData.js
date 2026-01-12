@@ -1,11 +1,22 @@
 const mongoose = require('mongoose');
+
 const HealthSchema = new mongoose.Schema({
+    hn_no: String,
     patientName: String,
-    bloodSugar: Number, // ค่าระดับน้ำตาล
-    sys: Number,        // ความดันตัวบน
-    dia: Number,        // ความดันตัวล่าง
-    bmi: Number,        // ดัชนีมวลกาย
-    diseaseRisk: String // ผลวิเคราะห์ว่าเสี่ยงโรคอะไร
+    dob: Date,
+    gender: String,
+    weight: Number,
+    height: Number,
+    bloodType: String,
+    systolic: Number,
+    diastolic: Number,
+    hba1c: Number,
+    ldl: Number,
+    cvRisk: Number
+}, { 
+    timestamps: true,
+    strict: false // บังคับให้บันทึกทุก field แม้ Schema จะหาไม่เจอ
 });
-module.exports = mongoose.model('HealthData', HealthSchema);
-//test2
+
+// ป้องกันการสร้าง Model ซ้ำถ้ามีการ restart server บ่อยๆ
+module.exports = mongoose.models.HealthData || mongoose.model('HealthData', HealthSchema);
