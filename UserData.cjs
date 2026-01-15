@@ -1,10 +1,9 @@
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
-    username: String,
-    password: String,
-    email: String,
-    tel: String
+    username: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
 }, { 
     timestamps: true,
     strict: false // บังคับให้บันทึกทุก field แม้ Schema จะหาไม่เจอ
