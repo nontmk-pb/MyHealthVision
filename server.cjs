@@ -6,6 +6,7 @@ require('dotenv').config();
 // นำเข้า Models (ตรวจสอบชื่อไฟล์ให้ตรง .cjs)
 const HealthData = require('./HealthData.cjs');
 const UserData = require('./UserData.cjs');
+const PatientData = require('./PatientData.cjs');
 
 const app = express();
 app.use(express.json());
@@ -62,25 +63,141 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// [POST] Report (ข้อมูลผู้ป่วย)
+// --- API ROUTES ---
+
+// [POST] Add Health Data (ระบบอัจฉริยะ: เช็คคนเก่า/สร้างคนใหม่ อัตโนมัติ)
 app.post('/api/report', async (req, res) => {
-  console.log("📥 Incoming Data:", req.body);
+  console.log("📥 Incoming Health Data:", req.body);
+  
+  // แยกข้อมูลจาก req.body
+  const { 
+    hn_no, patientName, dob, gender, bloodType, company, unit, department,                 // ข้อมูลคน
+    weight, height, systolic, diastolic, hba1c, cholesterol, ldl, cvRisk     // ข้อมูลผลตรวจ
+  } = req.body;
+
   try {
-    const data = new HealthData(req.body);
-    const savedData = await data.save();
-    res.status(201).json({ message: "Saved!", data: savedData });
+    let targetPatientId;
+
+    // 1. ค้นหาว่ามีผู้ป่วยคนนี้ (HN) ในระบบหรือยัง?
+    let patient = await PatientData.findOne({ hn_no: hn_no });
+
+    if (patient) {
+      // --- กรณีเจอ: เป็นผู้ป่วยเก่า ---
+      console.log(`✅ Found existing patient: ${patient.patientName}`);
+      targetPatientId = patient._id; // ใช้ ID เดิม
+
+      // (Optional) ถ้าอยากอัปเดตชื่อหรือข้อมูลส่วนตัวด้วย ให้ทำตรงนี้
+      // await Patient.findByIdAndUpdate(patient._id, { patientName, height });
+      
+    } else {
+      // --- กรณีไม่เจอ: เป็นผู้ป่วยใหม่ ---
+      console.log(`🆕 Creating new patient: ${patientName}`);
+      const newPatient = new PatientData({
+        hn_no, patientName, dob, gender, bloodType, company, unit, department
+      });
+      const savedPatient = await newPatient.save();
+      targetPatientId = savedPatient._id; // ได้ ID ใหม่มาใช้
+    }
+
+    // 2. บันทึก "ผลตรวจ" ลงใน HealthRecord (เชื่อมด้วย ID)
+    const newRecord = new HealthData({
+      patient_id: targetPatientId, // *หัวใจสำคัญของการเชื่อมโยง*
+      weight, height, systolic, diastolic, hba1c, cholesterol, ldl, cvRisk,
+      visitDate: new Date()
+    });
+
+    const savedRecord = await newRecord.save();
+
+    res.status(201).json({ 
+      message: "Saved Successfully!", 
+      patientStatus: patient ? "Existing" : "New",
+      record: savedRecord 
+    });
+
   } catch (err) {
+    console.error("❌ Save Error:", err);
     res.status(400).json({ message: "Error saving data", error: err.message });
   }
 });
 
-// [GET] Report all (ข้อมูลผู้ป่วย)
+// [GET] ดึงประวัติการตรวจทั้งหมดของผู้ป่วยคนหนึ่ง (ตาม HN)
+app.get('/api/history/:hn', async (req, res) => {
+    try {
+        // 1. หาตัวคนก่อน
+        const patient = await PatientData.findOne({ hn_no: req.params.hn });
+        if (!patient) return res.status(404).json({ message: "Patient not found" });
+
+        // 2. หาประวัติทั้งหมดของคนนี้
+        const history = await HealthData.find({ patient_id: patient._id })
+                                          .sort({ visitDate: -1 }); // ล่าสุดขึ้นก่อน
+
+        res.json({
+            patientInfo: patient,
+            checkupHistory: history
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// [GET] UserData (ข้อมูล Username, Eamil, Password)
+app.get('/api/user', async (req, res) => {
+  try {
+    const allData = await UserData.find().sort({ createdAt: -1 }); // เรียงล่าสุดขึ้นก่อน
+    res.json(allData);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// [GET] Report all (ผลตรวจผู้ป่วย)
 app.get('/api/report', async (req, res) => {
   try {
     const allData = await HealthData.find().sort({ createdAt: -1 }); // เรียงล่าสุดขึ้นก่อน
     res.json(allData);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// [GET] Report ID (ผลตรวจผู้ป่วย)
+app.get('/api/report/:id', async (req, res) => {
+  try {
+    const data = await HealthData.findById(req.params.id);
+
+    if (!data) {
+      return res.status(404).json({ message: 'Not found' });
+    }
+
+    res.json(data);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+
+// [GET] List All Patients (ดึงรายชื่อผู้ป่วยทั้งหมด สำหรับแสดงในตาราง)
+app.get('/api/patients', async (req, res) => {
+  try {
+    const patients = await PatientData.find().sort({ updatedAt: -1 }); // เรียงตามอัปเดตล่าสุด
+    res.json(patients);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// [PUT] UserData (ข้อมูล Username, Eamil, Password)
+app.put('/api/user/:id', async (req, res) => {
+  try {
+    const updated = await UserData.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true } // runValidators ช่วยเช็กความถูกต้องข้อมูลตอนอัปเดต
+    );
+    if (!updated) return res.status(404).json({ message: 'Not found' });
+    res.json({ message: 'Updated!', data: updated });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -96,6 +213,32 @@ app.put('/api/report/:id', async (req, res) => {
     res.json({ message: 'Updated!', data: updated });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// [PUT] Report (ข้อมูลผู้ป่วย)
+app.put('/api/patients/:id', async (req, res) => {
+  try {
+    const updated = await PatientData.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true } // runValidators ช่วยเช็กความถูกต้องข้อมูลตอนอัปเดต
+    );
+    if (!updated) return res.status(404).json({ message: 'Not found' });
+    res.json({ message: 'Updated!', data: updated });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// [DELETE] UserData (ข้อมูล Username, Eamil, Password)
+app.delete('/api/user/:id', async (req, res) => {
+  try {
+    const deleted = await UserData.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Not found' });
+    res.json({ message: 'Deleted!', data: deleted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
