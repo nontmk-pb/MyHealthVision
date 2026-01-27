@@ -1,9 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+* {
+  font-family: 'Prompt', sans-serif !important;
+}
+
 body {
   margin: 0;
-  background-color: #3d5497;
-  font-family: system-ui, -apple-system, sans-serif;
+  padding: 0;
+  background-color: #5879D1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 400; 
+  color: #333;
 }
