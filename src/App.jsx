@@ -6,6 +6,8 @@ import RegisterPage from './RegisterPage';
 import NcdsPage from './ncdsPage';
 import PatientListPage from './PatientListPage';
 import RiskListPage from './RiskListPage';
+import PatientPage from './PatientPage';
+import CheckupPage from './CheckupPage';
 
 function App() {
   return (
@@ -16,6 +18,7 @@ function App() {
         <Route path="/ncdsrisk" element={<NcdsPage />} />
         <Route path="/patientlist" element={<PatientListPage />} />
         <Route path="/risklist" element={<RiskListPage />} />
+        <Route path="/patient/:id" element={<PatientPage />} />
       </Routes>
     </Router>
   );

@@ -14,7 +14,17 @@ const HealthSchema = new mongoose.Schema({
     hba1c: Number,
     cholesterol:Number,
     ldl: Number,
-    cvRisk: Number
+    smoking: Number,
+    temperature: Number,
+    spo2: Number,
+    hb: Number,
+    hct: Number,
+    plt: Number,
+    wbc: Number,
+    neutrophil: Number,
+    fbs: Number,
+    tg: Number,
+    hdl: Number
 }, { 
     timestamps: true,
     strict: false // บังคับให้บันทึกทุก field แม้ Schema จะหาไม่เจอ

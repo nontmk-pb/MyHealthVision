@@ -72,7 +72,7 @@ app.post('/api/report', async (req, res) => {
   // แยกข้อมูลจาก req.body
   const { 
     hn_no, patientName, dob, gender, bloodType, company, unit, department,                 // ข้อมูลคน
-    weight, height, systolic, diastolic, hba1c, cholesterol, ldl, cvRisk     // ข้อมูลผลตรวจ
+    visitDate, weight, height, systolic, diastolic, hba1c, cholesterol, ldl, smoking, temperature, spo2, hb, hct, plt, wbc, neutrophil, fbs, tg, hdl     // ข้อมูลผลตรวจ
   } = req.body;
 
   try {
@@ -102,8 +102,8 @@ app.post('/api/report', async (req, res) => {
     // 2. บันทึก "ผลตรวจ" ลงใน HealthRecord (เชื่อมด้วย ID)
     const newRecord = new HealthData({
       patient_id: targetPatientId, // *หัวใจสำคัญของการเชื่อมโยง*
-      weight, height, systolic, diastolic, hba1c, cholesterol, ldl, cvRisk,
-      visitDate: new Date()
+      weight, height, systolic, diastolic, hba1c, cholesterol, ldl, smoking, temperature, spo2, hb, hct, plt, wbc, neutrophil, fbs, tg, hdl,
+      visitDate: visitDate ? new Date(visitDate) : new Date()
     });
 
     const savedRecord = await newRecord.save();
